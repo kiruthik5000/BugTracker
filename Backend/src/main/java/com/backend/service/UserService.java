@@ -5,6 +5,7 @@ import com.backend.entity.User;
 import com.backend.exception.BadRequestException;
 import com.backend.exception.ResourceNotFoundException;
 import com.backend.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,10 +16,12 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    // Constructor Injection (Correct – no @Autowired needed)
-    public UserService(UserRepository userRepository) {
+    // Constructor Injection
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // CREATE USER
@@ -38,7 +41,7 @@ public class UserService {
         if (user.getRole() == null) {
             user.setRole(Role.TESTER); // default role
         }
-
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
