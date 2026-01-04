@@ -22,13 +22,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) {
-         User user = userRepository.findByUsername(username);
-         if(user == null) throw new BadRequestException("user not found");
+         User user = userRepository.findByUsername(username).orElseThrow(
+                 () -> new BadRequestException("user not found")
+         );
 
-        return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
-                user.getPassword(),
-                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-        );
+       return new CustomUserDetails(user);
     }
 }

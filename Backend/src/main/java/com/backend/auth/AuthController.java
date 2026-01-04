@@ -1,5 +1,7 @@
 package com.backend.auth;
 
+import com.backend.dto.CreateUserRequestDto;
+import com.backend.dto.UserResponseDto;
 import com.backend.entity.User;
 import com.backend.repository.UserRepository;
 import com.backend.security.JwtUtil;
@@ -40,7 +42,9 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(), request.getPassword()));
 
-        User user = userRepository.findByUsername(request.getUsername());
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
 
         String token = jwtUtil.generateToken(
                 user.getUsername(),
@@ -50,16 +54,12 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegistrationRequest request) {
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setPassword(request.getPassword());
-        user.setEmail(request.getEmail());
-        User createdUser = userService.createUser(user) ;
+    public ResponseEntity<?> register(@RequestBody CreateUserRequestDto request) {
+        UserResponseDto createdUser = userService.createUser(request) ;
 
         String token = jwtUtil.generateToken(
                 createdUser.getUsername(),
-                createdUser.getRole().name());
+                createdUser.getRole());
 
         return ResponseEntity.ok(Map.of("token", token));
     }

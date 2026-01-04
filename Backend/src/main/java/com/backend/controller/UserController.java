@@ -1,9 +1,12 @@
 package com.backend.controller;
 
+import com.backend.dto.CreateUserRequestDto;
+import com.backend.dto.UserResponseDto;
 import com.backend.entity.User;
 import com.backend.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -35,14 +38,17 @@ public class UserController {
     }
 
     // CREATE USER
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody User user) {
+    public ResponseEntity<?> createUser(@RequestBody CreateUserRequestDto user) {
+        UserResponseDto responseDto = userService.createUser(user);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(userService.createUser(user));
+                .body(responseDto);
     }
 
     // DELETE USER
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         userService.deleteUserById(id);
@@ -50,6 +56,7 @@ public class UserController {
     }
 
     // CHANGE USER ROLE
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/role")
     public ResponseEntity<?> changeRole(
             @PathVariable Long id,

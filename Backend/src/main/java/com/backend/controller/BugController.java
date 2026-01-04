@@ -1,9 +1,11 @@
 package com.backend.controller;
 
+import com.backend.dto.CreateBugRequestDto;
 import com.backend.entity.Bug;
 import com.backend.service.BugService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -41,14 +43,16 @@ public class BugController {
     }
 
     // CREATE BUG
+    @PreAuthorize("hasRole('TESTER')")
     @PostMapping
-    public ResponseEntity<?> createBug(@RequestBody Bug bug) {
+    public ResponseEntity<?> createBug(@RequestBody CreateBugRequestDto bug, @RequestParam Long createdBy) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(bugService.createBug(bug));
+                .body(bugService.createBug(bug, createdBy));
     }
 
     // DELETE BUG
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteBug(@PathVariable Long id) {
         bugService.deleteBug(id);
@@ -56,6 +60,7 @@ public class BugController {
     }
 
     // ASSIGN BUG TO DEVELOPER
+    @PreAuthorize("hasAnyRole('PROJECT_MANAGER', 'ADMIN')")
     @PutMapping("/{id}/assign")
     public ResponseEntity<?> assignBugTo(
             @PathVariable Long id,
@@ -63,4 +68,15 @@ public class BugController {
 
         return ResponseEntity.ok(bugService.assignBug(id, userId));
     }
+
+    // Change status
+    @PreAuthorize("hasAnyRole('DEVELOPER', 'PROJECT_MANAGER')")
+    @PutMapping("/{id}/changeStatus")
+    public ResponseEntity<?> changeStatus(
+            @PathVariable Long id,
+            @RequestParam String changeTo) {
+        return ResponseEntity.ok(bugService.changeStatus(id, changeTo));
+    }
 }
+
+
