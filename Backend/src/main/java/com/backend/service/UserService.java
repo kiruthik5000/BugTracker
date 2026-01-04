@@ -46,7 +46,6 @@ public class UserService {
         if (user.getRole() == null) {
             user.setRole(Role.TESTER); // default role
         }
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
         return UserMapper.toDto(user);
     }
