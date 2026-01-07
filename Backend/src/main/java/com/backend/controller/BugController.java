@@ -1,7 +1,6 @@
 package com.backend.controller;
 
 import com.backend.dto.CreateBugRequestDto;
-import com.backend.entity.Bug;
 import com.backend.service.BugService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

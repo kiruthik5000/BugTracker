@@ -2,7 +2,6 @@ package com.backend.controller;
 
 import com.backend.dto.CreateUserRequestDto;
 import com.backend.dto.UserResponseDto;
-import com.backend.entity.User;
 import com.backend.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

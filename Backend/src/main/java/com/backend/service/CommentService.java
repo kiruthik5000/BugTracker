@@ -37,14 +37,14 @@ public class CommentService {
     }
 
     // POST COMMENT
-    public CommentResponseDto postComment(CreateCommentRequestDto comment, Long createdBy, Long bugId) {
+    public CommentResponseDto postComment(CreateCommentRequestDto comment) {
 
         if (comment == null) {
             throw new BadRequestException("Comment cannot be null");
         }
-        Bug bug = bugService.getBugById_helper(bugId);
+        Bug bug = bugService.getBugById_helper(comment.getBugId());
 
-       User created = userService.getUserById_helper(createdBy);
+       User created = userService.getUserById_helper(comment.getCreatedBy());
 
         if (comment.getMessage() == null || comment.getMessage().trim().isEmpty()) {
             throw new BadRequestException("Comment message cannot be empty");

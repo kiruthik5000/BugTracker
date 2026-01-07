@@ -1,7 +1,6 @@
 package com.backend.controller;
 
 import com.backend.dto.CreateCommentRequestDto;
-import com.backend.entity.Comment;
 import com.backend.service.CommentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,11 +24,11 @@ public class CommentController {
     }
 
     // CREATE COMMENT
-    @PreAuthorize("hasAnyRole('TESTER, DEVELOPER')")
-    @PostMapping("/{id}")
-    public ResponseEntity<?> createComment(@RequestBody CreateCommentRequestDto comment, @PathVariable Long id, @RequestParam Long createdBy) {
+    @PreAuthorize("hasAnyRole('TESTER', 'DEVELOPER')")
+    @PostMapping
+    public ResponseEntity<?> createComment(@RequestBody CreateCommentRequestDto comment) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(commentService.postComment(comment,createdBy, id ));
+                .body(commentService.postComment(comment));
     }
 }
