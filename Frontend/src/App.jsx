@@ -1,16 +1,23 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-function App() {
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+import Auth from "./Compontents/Auth";
+import Home from "./Compontents/Home";
+import ProtectedRoute from "./auth/ProtectedRoute";
+const App = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black">
-      <h1 className="text-5xl font-extrabold text-green-400">
-        Tailwind is Working
-      </h1>
-    </div>
-  )
-}
+    <Routes>
+      <Route path="/auth" element={<Auth />} />
 
-export default App
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
+};
 
+export default App;
