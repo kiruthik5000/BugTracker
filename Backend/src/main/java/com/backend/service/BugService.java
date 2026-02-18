@@ -20,10 +20,12 @@ public class BugService {
 
     private final BugRepository bugRepository;
     private final UserService userService;
+    private final ProjectService projectService;
 
-    public BugService(BugRepository bugRepository, UserService userService) {
+    public BugService(BugRepository bugRepository, UserService userService, ProjectService projectService) {
         this.bugRepository = bugRepository;
         this.userService = userService;
+        this.projectService = projectService;
     }
 
     // CREATE BUG
@@ -41,7 +43,13 @@ public class BugService {
             throw new BadRequestException("Steps to reproduce are required");
         }
         User user = userService.getUserById_helper(createdBy);
-        return BugMapper.toDto(bugRepository.save(BugMapper.toEntity(bug, user)));
+        Bug bugEntity = BugMapper.toEntity(bug, user);
+
+        if (bug.getProjectId() != null) {
+            bugEntity.setProject(projectService.getProjectById_helper(bug.getProjectId()));
+        }
+
+        return BugMapper.toDto(bugRepository.save(bugEntity));
     }
 
     // GET BUG BY ID

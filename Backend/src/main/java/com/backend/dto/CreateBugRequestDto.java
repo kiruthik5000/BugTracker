@@ -11,4 +11,5 @@ public class CreateBugRequestDto {
     private String stepsToReproduce;
     private String status;
     private String priority;
+    private Long projectId;
 }

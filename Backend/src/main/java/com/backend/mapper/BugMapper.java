@@ -35,6 +35,7 @@ public class BugMapper {
                 bug.getPriority().name(),
                 bug.getCreatedBy().getUsername(),
                 bug.getAssignedTo() != null ? bug.getAssignedTo().getUsername() : null,
+                bug.getProject() != null ? bug.getProject().getName() : null,
                 bug.getCreatedAt()
         );
     }

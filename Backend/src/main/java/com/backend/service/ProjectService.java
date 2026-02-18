@@ -51,6 +51,12 @@ public class ProjectService {
         return ProjectMapper.toDto(projectRepository.save(project));
     }
 
+    // DELETE PROJECT
+    public void deleteProject(Long projectId) {
+        Project project = getProjectById_helper(projectId);
+        projectRepository.delete(project);
+    }
+
     // HELPER FUNCTIONS
     public Project getProjectById_helper(Long id) {
         if (id == null) throw new BadRequestException("Project ID cannot be null");

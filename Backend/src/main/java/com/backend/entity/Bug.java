@@ -39,4 +39,9 @@ public class Bug extends BaseEntity{
     @JoinColumn(name = "assigned_to")
     private User assignedTo;
 
+    // many bugs belong to a single project
+    @ManyToOne
+    @JoinColumn(name = "project_id")
+    private Project project;
+
 }

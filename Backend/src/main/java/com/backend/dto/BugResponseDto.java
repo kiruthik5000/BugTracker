@@ -16,5 +16,6 @@ public class BugResponseDto {
     private String priority;
     private String createdBy;
     private String assignedTo;
+    private String projectName;
     private LocalDateTime createdAt;
 }
