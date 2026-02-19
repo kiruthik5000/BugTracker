@@ -3,6 +3,7 @@ package com.backend.mapper;
 import com.backend.dto.CreateProjectRequestDto;
 import com.backend.dto.ProjectResponseDto;
 import com.backend.entity.Project;
+import com.backend.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -10,7 +11,7 @@ import java.util.List;
 
 public class ProjectMapper {
 
-    public static Project toEntity(CreateProjectRequestDto dto) {
+    public static Project toEntity(CreateProjectRequestDto dto, User createdBy) {
         Project project = new Project();
         project.setName(dto.getName());
         project.setDescription(dto.getDescription());

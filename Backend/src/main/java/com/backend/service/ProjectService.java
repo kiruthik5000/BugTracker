@@ -37,7 +37,9 @@ public class ProjectService {
 
         if (projectRequestDto == null) throw new BadRequestException("Project Cannot be Null");
         if (isBlank(projectRequestDto.getName())) throw new BadRequestException("Project Name required");
-        return ProjectMapper.toDto(projectRepository.save(ProjectMapper.toEntity(projectRequestDto)));
+        User usr = userService.getUserById_helper(projectRequestDto.getUserId());
+        Project project = ProjectMapper.toEntity(projectRequestDto, usr);
+        return ProjectMapper.toDto(projectRepository.save(project));
     }
 
     // ASSIGN MANAGER

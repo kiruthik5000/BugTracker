@@ -1,20 +1,48 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import { decodeToken } from "../services/authService";
+import { getAllUsers } from "../services/userService";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [isAuthenticated, setIsAuthenticated] = useState(
-        !!localStorage.getItem("token")
-    );
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    const login = () => setIsAuthenticated(true);
-    const logout = () => setIsAuthenticated(false);
+    const resolveUser = async () => {
+        const decoded = decodeToken();
+        if (!decoded) {
+            setUser(null);
+            setLoading(false);
+            return;
+        }
+        try {
+            const res = await getAllUsers();
+            const match = res.data.find((u) => u.username === decoded.username);
+            setUser(match ? { id: match.id, username: match.username, role: match.role } : decoded);
+        } catch {
+            setUser(decoded);
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        resolveUser();
+    }, []);
+
+    const login = () => resolveUser();
+
+    const logout = () => {
+        localStorage.removeItem("token");
+        setUser(null);
+    };
+
+    const isAuthenticated = !!user;
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, login, logout}}>
+        <AuthContext.Provider value={{ user, isAuthenticated, login, logout, loading }}>
             {children}
         </AuthContext.Provider>
-    )
-}
+    );
+};
 
 export const useAuth = () => useContext(AuthContext);

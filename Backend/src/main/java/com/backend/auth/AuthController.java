@@ -50,7 +50,7 @@ public class AuthController {
                 user.getUsername(),
                 user.getRole().name());
 
-        return ResponseEntity.ok(Map.of("token", token));
+        return ResponseEntity.ok(Map.of("token", token, "userId", user.getId()));
     }
 
     @PostMapping("/register")

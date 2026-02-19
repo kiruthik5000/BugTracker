@@ -8,4 +8,5 @@ import lombok.Data;
 public class CreateProjectRequestDto {
     private String name;
     private String description;
+    private Long userId;
 }
