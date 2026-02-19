@@ -4,6 +4,7 @@ export const loginUser = async (credentials) => {
     const response = await axiosInstance.post("/auth/login", credentials);
     console.log(response.data);
     localStorage.setItem("token", response.data.token);
+    localStorage.setItem("userId", response.data.userId);
     return response.data;
 };
 
@@ -15,7 +16,7 @@ export const registerUser = async (data) => {
 
 export const logoutUser = () => {
     console.log("logout");
-    
+
     localStorage.removeItem("token");
 };
 

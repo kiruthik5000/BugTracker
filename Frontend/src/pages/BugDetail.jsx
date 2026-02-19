@@ -3,14 +3,25 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getBugById, deleteBug, changeStatus } from "../services/bugService";
 import { getCommentsByBug, createComment } from "../services/commentService";
 import { useAuth } from "../auth/AuthContext";
+import { useToast } from "../components/shared/ToastContext";
 import StatusBadge from "../components/shared/StatusBadge";
 import PriorityBadge from "../components/shared/PriorityBadge";
 import BugManager from "../components/BugManager";
+import Dropdown from "../components/shared/Dropdown";
+
+const statusOptions = [
+    { value: "OPEN", label: "Open", color: "bg-sky-400" },
+    { value: "IN_PROGRESS", label: "In Progress", color: "bg-amber-400" },
+    { value: "RESOLVED", label: "Resolved", color: "bg-emerald-400" },
+    { value: "CLOSED", label: "Closed", color: "bg-gray-400" },
+    { value: "REOPENED", label: "Reopened", color: "bg-rose-400" },
+];
 
 const BugDetail = () => {
     const { id } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const toast = useToast();
     const [bug, setBug] = useState(null);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState("");
@@ -41,8 +52,9 @@ const BugDetail = () => {
             setNewComment("");
             const res = await getCommentsByBug(id);
             setComments(res.data);
+            toast.success("Comment posted.");
         } catch (err) {
-            console.error(err);
+            toast.error("Failed to post comment.");
         }
     };
 
@@ -50,9 +62,10 @@ const BugDetail = () => {
         if (!window.confirm("Delete this bug permanently?")) return;
         try {
             await deleteBug(id);
+            toast.success("Bug deleted.");
             navigate("/bugs");
         } catch (err) {
-            console.error(err);
+            toast.error("Failed to delete bug.");
         }
     };
 
@@ -61,9 +74,10 @@ const BugDetail = () => {
         try {
             await changeStatus(id, devStatus);
             setDevStatus("");
+            toast.success("Status updated.");
             load();
         } catch (err) {
-            console.error(err);
+            toast.error("Failed to update status.");
         }
     };
 
@@ -76,19 +90,32 @@ const BugDetail = () => {
     }
 
     if (!bug) {
-        return <p className="text-center text-gray-400">Bug not found.</p>;
+        return (
+            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 py-16 text-center">
+                <p className="text-3xl">🔍</p>
+                <p className="mt-2 text-sm text-gray-400">Bug not found.</p>
+                <button onClick={() => navigate("/bugs")} className="mt-4 text-sm font-medium text-blue-600 hover:text-blue-700">
+                    ← Back to bugs
+                </button>
+            </div>
+        );
     }
 
     const canComment = ["TESTER", "DEVELOPER"].includes(user?.role);
-    const canManage  = ["PROJECT_MANAGER", "ADMIN"].includes(user?.role);
-    const canDelete  = user?.role === "ADMIN";
+    const canManage = ["PROJECT_MANAGER", "ADMIN"].includes(user?.role);
+    const canDelete = user?.role === "ADMIN";
     const isDeveloperAssigned = user?.role === "DEVELOPER" && bug.assignedTo === user.username;
+
+    const devStatusOptions = statusOptions.filter((s) => s.value !== bug.status);
 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-start justify-between">
+            <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
+                    <button onClick={() => navigate("/bugs")} className="mb-2 text-xs font-medium text-gray-400 transition hover:text-blue-600">
+                        ← Back to bugs
+                    </button>
                     <h1 className="text-2xl font-bold text-gray-800">{bug.title}</h1>
                     <p className="mt-1 text-sm text-gray-500">
                         Reported by <span className="font-medium text-gray-700">{bug.createdBy}</span>
@@ -107,11 +134,15 @@ const BugDetail = () => {
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="grid gap-6 sm:grid-cols-2">
                     <div>
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Description</h3>
+                        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                            <span>📝</span> Description
+                        </h3>
                         <p className="mt-2 text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">{bug.description || "—"}</p>
                     </div>
                     <div>
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Steps to Reproduce</h3>
+                        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                            <span>🔄</span> Steps to Reproduce
+                        </h3>
                         <p className="mt-2 text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">{bug.stepsToReproduce || "—"}</p>
                     </div>
                 </div>
@@ -119,7 +150,7 @@ const BugDetail = () => {
                 <div className="mt-6 grid gap-4 border-t border-gray-100 pt-4 text-sm sm:grid-cols-3">
                     <div>
                         <span className="text-xs font-semibold uppercase text-gray-400">Assigned To</span>
-                        <p className="mt-1 font-medium text-gray-700">{bug.assignedTo || "Unassigned"}</p>
+                        <p className="mt-1 font-medium text-gray-700">{bug.assignedTo || <span className="text-gray-300">Unassigned</span>}</p>
                     </div>
                     <div>
                         <span className="text-xs font-semibold uppercase text-gray-400">Project</span>
@@ -132,28 +163,23 @@ const BugDetail = () => {
                 </div>
             </div>
 
-            {/* Developer — Change Status (only for assigned bugs) */}
+            {/* Developer — Change Status */}
             {isDeveloperAssigned && (
                 <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-base font-semibold text-gray-800">Update Status</h2>
-                    <p className="mt-1 text-xs text-gray-500">You can change the status of this bug since it's assigned to you.</p>
+                    <h2 className="text-base font-bold text-gray-800">Update Status</h2>
+                    <p className="mt-1 text-xs text-gray-400">You can change the status since this bug is assigned to you.</p>
                     <div className="mt-4 flex items-center gap-3">
-                        <select
+                        <Dropdown
+                            options={devStatusOptions}
                             value={devStatus}
-                            onChange={(e) => setDevStatus(e.target.value)}
-                            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                        >
-                            <option value="">Select status...</option>
-                            {["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED", "REOPENED"]
-                                .filter((s) => s !== bug.status)
-                                .map((s) => (
-                                    <option key={s} value={s}>{s.replace("_", " ")}</option>
-                                ))}
-                        </select>
+                            onChange={setDevStatus}
+                            placeholder="Select status..."
+                            className="w-56"
+                        />
                         <button
                             onClick={handleDevStatusChange}
                             disabled={!devStatus}
-                            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+                            className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
                         >
                             Update
                         </button>
@@ -164,7 +190,7 @@ const BugDetail = () => {
             {/* Bug Manager (PM / ADMIN) */}
             {canManage && (
                 <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <BugManager bugId={id} currentBug={bug} onUpdate={load} />
+                    <BugManager bug={bug} onUpdate={load} />
                 </div>
             )}
 
@@ -182,23 +208,30 @@ const BugDetail = () => {
 
             {/* Comments */}
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="text-base font-semibold text-gray-800">
+                <h2 className="text-base font-bold text-gray-800">
                     Comments <span className="text-sm font-normal text-gray-400">({comments.length})</span>
                 </h2>
 
-                <div className="mt-4 space-y-4">
+                <div className="mt-4 space-y-3">
                     {comments.length === 0 ? (
-                        <p className="text-sm text-gray-400">No comments yet.</p>
+                        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 py-6 text-center">
+                            <p className="text-sm text-gray-400">No comments yet. Be the first to comment.</p>
+                        </div>
                     ) : (
                         comments.map((c, i) => (
-                            <div key={i} className="rounded-xl bg-gray-50 px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-gray-700">{c.commentedBy}</span>
-                                    <span className="text-xs text-gray-400">
-                                        {c.commentedAt ? new Date(c.commentedAt).toLocaleString() : ""}
-                                    </span>
+                            <div key={i} className="flex gap-3">
+                                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gray-600 to-gray-800 text-[10px] font-bold text-white">
+                                    {c.commentedBy?.charAt(0)?.toUpperCase() || "?"}
                                 </div>
-                                <p className="mt-1 text-sm text-gray-600">{c.content}</p>
+                                <div className="flex-1 rounded-xl bg-gray-50 px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-semibold text-gray-700">{c.commentedBy}</span>
+                                        <span className="text-xs text-gray-400">
+                                            {c.commentedAt ? new Date(c.commentedAt).toLocaleString() : ""}
+                                        </span>
+                                    </div>
+                                    <p className="mt-1 text-sm text-gray-600">{c.content}</p>
+                                </div>
                             </div>
                         ))
                     )}

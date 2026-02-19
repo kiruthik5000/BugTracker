@@ -18,7 +18,7 @@ public class Project extends BaseEntity{
     @Column(length = 2000)
     private String description;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "managed_by")
     private User managedBy;
 }

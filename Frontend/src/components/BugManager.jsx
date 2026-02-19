@@ -1,15 +1,23 @@
 import { useEffect, useState } from "react";
 import { assignBug, changeStatus } from "../services/bugService";
 import { getUsersByRole } from "../services/userService";
+import { useToast } from "../components/shared/ToastContext";
+import Dropdown from "../components/shared/Dropdown";
 
-const statusOptions = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED", "REOPENED"];
+const statusOptions = [
+    { value: "OPEN", label: "Open", color: "bg-sky-400" },
+    { value: "IN_PROGRESS", label: "In Progress", color: "bg-amber-400" },
+    { value: "RESOLVED", label: "Resolved", color: "bg-emerald-400" },
+    { value: "CLOSED", label: "Closed", color: "bg-gray-400" },
+    { value: "REOPENED", label: "Reopened", color: "bg-rose-400" },
+];
 
 const BugManager = ({ bug, onUpdate }) => {
+    const toast = useToast();
     const [developers, setDevelopers] = useState([]);
     const [selectedDev, setSelectedDev] = useState("");
     const [selectedStatus, setSelectedStatus] = useState(bug?.status || "");
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState("");
 
     useEffect(() => {
         getUsersByRole("DEVELOPER")
@@ -24,13 +32,12 @@ const BugManager = ({ bug, onUpdate }) => {
     const handleAssign = async () => {
         if (!selectedDev) return;
         setSaving(true);
-        setMessage("");
         try {
             await assignBug(bug.id, selectedDev);
-            setMessage("Developer assigned successfully.");
+            toast.success("Developer assigned successfully.");
             onUpdate();
         } catch (err) {
-            setMessage(err.response?.data?.message || "Failed to assign.");
+            toast.error(err.response?.data?.message || "Failed to assign.");
         }
         setSaving(false);
     };
@@ -38,35 +45,37 @@ const BugManager = ({ bug, onUpdate }) => {
     const handleStatusChange = async () => {
         if (!selectedStatus || selectedStatus === bug.status) return;
         setSaving(true);
-        setMessage("");
         try {
             await changeStatus(bug.id, selectedStatus);
-            setMessage("Status updated successfully.");
+            toast.success("Status updated successfully.");
             onUpdate();
         } catch (err) {
-            setMessage(err.response?.data?.message || "Failed to update status.");
+            toast.error(err.response?.data?.message || "Failed to update status.");
         }
         setSaving(false);
     };
 
+    const devOptions = developers.map((d) => ({
+        value: String(d.id),
+        label: d.username,
+    }));
+
     return (
-        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-6 space-y-5">
-            <h2 className="text-lg font-semibold text-gray-800">Bug Manager</h2>
+        <div className="space-y-5">
+            <h2 className="text-lg font-bold text-gray-800">Bug Manager</h2>
 
             {/* Assign Developer */}
             <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Assign to Developer</label>
                 <div className="flex gap-3">
-                    <select
+                    <Dropdown
+                        options={devOptions}
                         value={selectedDev}
-                        onChange={(e) => setSelectedDev(e.target.value)}
-                        className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                    >
-                        <option value="">Select developer...</option>
-                        {developers.map((d) => (
-                            <option key={d.id} value={d.id}>{d.username}</option>
-                        ))}
-                    </select>
+                        onChange={setSelectedDev}
+                        placeholder="Select developer..."
+                        searchable={developers.length > 5}
+                        className="flex-1"
+                    />
                     <button
                         onClick={handleAssign}
                         disabled={saving || !selectedDev}
@@ -81,15 +90,13 @@ const BugManager = ({ bug, onUpdate }) => {
             <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Change Status</label>
                 <div className="flex gap-3">
-                    <select
+                    <Dropdown
+                        options={statusOptions}
                         value={selectedStatus}
-                        onChange={(e) => setSelectedStatus(e.target.value)}
-                        className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                    >
-                        {statusOptions.map((s) => (
-                            <option key={s} value={s}>{s.replace("_", " ")}</option>
-                        ))}
-                    </select>
+                        onChange={setSelectedStatus}
+                        placeholder="Select status..."
+                        className="flex-1"
+                    />
                     <button
                         onClick={handleStatusChange}
                         disabled={saving || selectedStatus === bug.status}
@@ -99,8 +106,6 @@ const BugManager = ({ bug, onUpdate }) => {
                     </button>
                 </div>
             </div>
-
-            {message && <p className="text-sm font-medium text-indigo-700">{message}</p>}
         </div>
     );
 };

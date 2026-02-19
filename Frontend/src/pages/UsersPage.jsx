@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getAllUsers, createUser, deleteUser, changeRole } from "../services/userService";
+import { useToast } from "../components/shared/ToastContext";
 import Modal from "../components/shared/Modal";
+import Dropdown from "../components/shared/Dropdown";
 
 const roles = ["DEVELOPER", "TESTER", "PROJECT_MANAGER", "ADMIN"];
 
@@ -11,12 +13,18 @@ const roleBadgeColors = {
     TESTER: "bg-amber-100 text-amber-700",
 };
 
+const roleOptions = roles.map((r) => ({
+    value: r,
+    label: r.replace("_", " "),
+    badge: roleBadgeColors[r] || "bg-gray-100 text-gray-600",
+}));
+
 const UsersPage = () => {
+    const toast = useToast();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState("");
     const [newUser, setNewUser] = useState({
         username: "",
         email: "",
@@ -38,7 +46,7 @@ const UsersPage = () => {
 
     const handleCreate = async () => {
         if (!newUser.username.trim() || !newUser.email.trim() || !newUser.password.trim()) {
-            setMessage("All fields are required.");
+            toast.error("All fields are required.");
             return;
         }
         setSaving(true);
@@ -46,10 +54,10 @@ const UsersPage = () => {
             await createUser(newUser);
             setNewUser({ username: "", email: "", password: "", role: "DEVELOPER" });
             setShowCreate(false);
-            setMessage("User created successfully.");
+            toast.success("User created successfully.");
             load();
         } catch (err) {
-            setMessage(err.response?.data?.message || "Failed to create user.");
+            toast.error(err.response?.data?.message || "Failed to create user.");
         }
         setSaving(false);
     };
@@ -57,10 +65,10 @@ const UsersPage = () => {
     const handleRoleChange = async (userId, newRole) => {
         try {
             await changeRole(userId, newRole);
-            setMessage("Role updated.");
+            toast.success("Role updated.");
             load();
         } catch (err) {
-            setMessage(err.response?.data?.message || "Failed to change role.");
+            toast.error(err.response?.data?.message || "Failed to change role.");
         }
     };
 
@@ -68,10 +76,10 @@ const UsersPage = () => {
         if (!window.confirm("Delete this user permanently?")) return;
         try {
             await deleteUser(userId);
-            setMessage("User deleted.");
+            toast.success("User deleted.");
             load();
         } catch (err) {
-            setMessage(err.response?.data?.message || "Failed to delete user.");
+            toast.error(err.response?.data?.message || "Failed to delete user.");
         }
     };
 
@@ -85,10 +93,10 @@ const UsersPage = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
-                    <p className="mt-1 text-sm text-gray-500">Create, manage, and assign roles to users</p>
+                    <p className="mt-1 text-sm text-gray-400">Create, manage, and assign roles to users</p>
                 </div>
                 <button
                     onClick={() => setShowCreate(true)}
@@ -98,59 +106,63 @@ const UsersPage = () => {
                 </button>
             </div>
 
-            {message && (
-                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700">
-                    {message}
-                    <button onClick={() => setMessage("")} className="ml-3 text-blue-400 hover:text-blue-600">&times;</button>
-                </div>
-            )}
-
             {users.length === 0 ? (
-                <p className="text-sm text-gray-400">No users found.</p>
+                <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 py-12 text-center">
+                    <p className="text-3xl">👥</p>
+                    <p className="mt-2 text-sm text-gray-400">No users found.</p>
+                </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     <table className="w-full text-left text-sm">
                         <thead className="border-b border-gray-100 bg-gray-50/60">
                             <tr>
-                                <th className="px-4 py-3 font-medium text-gray-500">ID</th>
-                                <th className="px-4 py-3 font-medium text-gray-500">Username</th>
-                                <th className="px-4 py-3 font-medium text-gray-500">Role</th>
-                                <th className="px-4 py-3 font-medium text-gray-500">Change Role</th>
-                                <th className="px-4 py-3 font-medium text-gray-500">Actions</th>
+                                <th className="px-4 py-3 font-semibold text-gray-500">User</th>
+                                <th className="px-4 py-3 font-semibold text-gray-500">Role</th>
+                                <th className="px-4 py-3 font-semibold text-gray-500">Change Role</th>
+                                <th className="px-4 py-3 font-semibold text-gray-500 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {users.map((u) => (
-                                <tr key={u.id} className="transition hover:bg-blue-50/30">
-                                    <td className="px-4 py-3 text-gray-500">{u.id}</td>
-                                    <td className="px-4 py-3 font-medium text-gray-800">{u.username}</td>
-                                    <td className="px-4 py-3">
-                                        <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${roleBadgeColors[u.role] || "bg-gray-100 text-gray-600"}`}>
-                                            {u.role?.replace("_", " ")}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <select
-                                            value=""
-                                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                                            className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                                        >
-                                            <option value="">Change to...</option>
-                                            {roles.filter((r) => r !== u.role).map((r) => (
-                                                <option key={r} value={r}>{r.replace("_", " ")}</option>
-                                            ))}
-                                        </select>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <button
-                                            onClick={() => handleDelete(u.id)}
-                                            className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100"
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                        <tbody className="divide-y divide-gray-50">
+                            {users.map((u) => {
+                                const changeOptions = roleOptions.filter((r) => r.value !== u.role);
+                                return (
+                                    <tr key={u.id} className="transition-colors hover:bg-blue-50/30">
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-gray-600 to-gray-800 text-xs font-bold text-white">
+                                                    {u.username?.charAt(0)?.toUpperCase() || "?"}
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-gray-800">{u.username}</p>
+                                                    <p className="text-xs text-gray-400">ID: {u.id}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${roleBadgeColors[u.role] || "bg-gray-100 text-gray-600"}`}>
+                                                {u.role?.replace("_", " ")}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <Dropdown
+                                                options={changeOptions}
+                                                value=""
+                                                onChange={(val) => handleRoleChange(u.id, val)}
+                                                placeholder="Change to..."
+                                                className="w-44"
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            <button
+                                                onClick={() => handleDelete(u.id)}
+                                                className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100"
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -160,46 +172,43 @@ const UsersPage = () => {
             <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create User">
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Username</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Username</label>
                         <input
                             type="text"
                             value={newUser.username}
                             onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                            className="mt-1.5 w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-700 shadow-sm placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-700 shadow-sm placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
                             placeholder="johndoe"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Email</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Email</label>
                         <input
                             type="email"
                             value={newUser.email}
                             onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                            className="mt-1.5 w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-700 shadow-sm placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-700 shadow-sm placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
                             placeholder="john@team.com"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Password</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
                         <input
                             type="password"
                             value={newUser.password}
                             onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                            className="mt-1.5 w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-700 shadow-sm placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-700 shadow-sm placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
                             placeholder="••••••••"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Role</label>
-                        <select
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Role</label>
+                        <Dropdown
+                            options={roleOptions}
                             value={newUser.role}
-                            onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                            className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                        >
-                            {roles.map((r) => (
-                                <option key={r} value={r}>{r.replace("_", " ")}</option>
-                            ))}
-                        </select>
+                            onChange={(val) => setNewUser({ ...newUser, role: val })}
+                            placeholder="Select role..."
+                        />
                     </div>
                     <button
                         onClick={handleCreate}

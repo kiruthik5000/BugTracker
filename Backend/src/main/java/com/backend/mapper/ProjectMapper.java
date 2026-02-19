@@ -16,6 +16,7 @@ public class ProjectMapper {
         project.setName(dto.getName());
         project.setDescription(dto.getDescription());
         project.setCreatedAt(LocalDateTime.now());
+        project.setManagedBy(createdBy);
         return project;
     }
 

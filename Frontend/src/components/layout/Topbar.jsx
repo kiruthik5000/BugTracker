@@ -1,42 +1,47 @@
 import { useAuth } from "../../auth/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { logoutUser } from "../../services/authService";
+import { useLocation } from "react-router-dom";
 
-const roleBadgeColors = {
-    ADMIN: "bg-purple-100 text-purple-700",
-    PROJECT_MANAGER: "bg-indigo-100 text-indigo-700",
-    DEVELOPER: "bg-emerald-100 text-emerald-700",
-    TESTER: "bg-amber-100 text-amber-700",
+const pageNames = {
+    "/": "Dashboard",
+    "/bugs": "All Bugs",
+    "/bugs/new": "Report a Bug",
+    "/bug-manager": "Bug Manager",
+    "/projects": "Projects",
+    "/users": "User Management",
 };
 
 const Topbar = () => {
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
+    const { user } = useAuth();
+    const location = useLocation();
 
-    const handleLogout = () => {
-        logoutUser();
-        logout();
-        navigate("/auth");
+    // Build page title from route
+    let pageTitle = pageNames[location.pathname] || "";
+    if (!pageTitle && location.pathname.startsWith("/bugs/")) {
+        pageTitle = "Bug Details";
+    }
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good morning";
+        if (hour < 17) return "Good afternoon";
+        return "Good evening";
     };
 
-    const roleLabel = user?.role?.replace("_", " ") || "";
-
     return (
-        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
-            <h2 className="text-sm font-medium text-gray-500">
-                Welcome back, <span className="text-gray-800 font-semibold">{user?.username}</span>
-            </h2>
+        <header className="flex h-16 items-center justify-between border-b border-gray-200/80 bg-white/80 px-6 backdrop-blur-sm">
+            <div>
+                {pageTitle && (
+                    <h2 className="text-base font-bold text-gray-800">{pageTitle}</h2>
+                )}
+                <p className="text-xs text-gray-400">
+                    {getGreeting()}, {user?.username}
+                </p>
+            </div>
 
-            <div className="flex items-center gap-4">
-                <span className={`rounded-full px-3 py-1 text-xs font-medium ${roleBadgeColors[user?.role] || "bg-gray-100 text-gray-600"}`}>
-                    {roleLabel}
-                </span>
-                <button
-                    onClick={handleLogout}
-                    className="rounded-lg border border-gray-200 px-3.5 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"
-                >
-                    Logout
-                </button>
+            <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-bold text-white shadow-sm">
+                    {user?.username?.charAt(0)?.toUpperCase() || "?"}
+                </div>
             </div>
         </header>
     );
