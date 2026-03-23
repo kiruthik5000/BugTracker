@@ -1,10 +1,20 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+
 from DuplicateChecker import CheckDuplicate
 
 app = FastAPI()
 
-cd = CheckDuplicate('all-MiniLM-L6-v2')
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+cd = CheckDuplicate('all-MiniLM-L6-v2', "http://localhost:8080/api/bugs")
 
 class Bug(BaseModel):
     id: int
