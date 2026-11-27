@@ -1,0 +1,8 @@
+venv/
+.venv/
+__pycache__/
+node_modules/
+.git/
+*.pt
+*.pth
+data/
