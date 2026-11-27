@@ -20,6 +20,7 @@ const statusOptions = [
 const BugDetail = () => {
     const { id } = useParams();
     const { user } = useAuth();
+    const userId = localStorage.getItem("userId");
     const navigate = useNavigate();
     const toast = useToast();
     const [bug, setBug] = useState(null);
@@ -48,7 +49,9 @@ const BugDetail = () => {
         e.preventDefault();
         if (!newComment.trim()) return;
         try {
-            await createComment({ bugId: id, createdBy: user.id, message: newComment });
+            let comment = {bugId: id, createdBy: userId, message: newComment};
+            console.log(comment);
+            await createComment(comment);
             setNewComment("");
             const res = await getCommentsByBug(id);
             setComments(res.data);

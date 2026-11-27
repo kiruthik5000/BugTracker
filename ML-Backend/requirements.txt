@@ -1,0 +1,6 @@
+skicit-learn
+requests
+stentence-transformers
+fastapi
+uvicorn
+python-dotenv

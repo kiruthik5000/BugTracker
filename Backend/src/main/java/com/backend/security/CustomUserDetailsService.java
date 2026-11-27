@@ -1,10 +1,10 @@
 package com.backend.security;
 
 import com.backend.entity.User;
-import com.backend.exception.BadRequestException;
 import com.backend.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,11 +17,10 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) {
-         User user = userRepository.findByUsername(username).orElseThrow(
-                 () -> new BadRequestException("user not found")
-         );
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-       return new CustomUserDetails(user);
+        return new CustomUserDetails(user);
     }
 }

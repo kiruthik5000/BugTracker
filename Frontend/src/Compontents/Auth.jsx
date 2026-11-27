@@ -33,7 +33,7 @@ const Auth = () => {
         try {
             if (isLogin) {
                 await loginUser({
-                    username: formValues.email,
+                    email: formValues.email,
                     password: formValues.password,
                 });
             } else {
