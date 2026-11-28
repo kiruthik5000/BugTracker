@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { decodeToken } from "../services/authService";
+import { decodeToken, getStoredUserId, logoutUser } from "../services/authService";
 import { getAllUsers } from "../services/userService";
 
 const AuthContext = createContext(null);
@@ -15,12 +15,18 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
             return;
         }
+        const fallbackId = decoded.id ?? getStoredUserId();
         try {
             const res = await getAllUsers();
             const match = res.data.find((u) => u.username === decoded.username);
-            setUser(match ? { id: match.id, username: match.username, role: match.role } : decoded);
+            if (match) {
+                localStorage.setItem("userId", String(match.id));
+                setUser({ id: match.id, username: match.username, role: match.role });
+            } else {
+                setUser({ ...decoded, id: fallbackId });
+            }
         } catch {
-            setUser(decoded);
+            setUser({ ...decoded, id: fallbackId });
         }
         setLoading(false);
     };
@@ -32,7 +38,7 @@ export const AuthProvider = ({ children }) => {
     const login = () => resolveUser();
 
     const logout = () => {
-        localStorage.removeItem("token");
+        logoutUser();
         setUser(null);
     };
 

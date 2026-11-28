@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAllBugs } from "../services/bugService";
+import { getAllBugs, getAssignedBugs } from "../services/bugService";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import StatusBadge from "../components/shared/StatusBadge";
@@ -25,6 +25,7 @@ const priorityOptions = [
 
 const BugsList = () => {
     const [bugs, setBugs] = useState([]);
+    const [assignedIds, setAssignedIds] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
@@ -32,12 +33,28 @@ const BugsList = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
 
+    const isDeveloper = user?.role === "DEVELOPER";
+
     useEffect(() => {
-        getAllBugs()
-            .then((res) => setBugs(res.data))
-            .catch(console.error)
-            .finally(() => setLoading(false));
-    }, []);
+        const load = async () => {
+            try {
+                const allPromise = getAllBugs();
+                const assignedPromise =
+                    isDeveloper && user?.id ? getAssignedBugs(user.id) : Promise.resolve(null);
+
+                const [allRes, assignedRes] = await Promise.all([allPromise, assignedPromise]);
+                setBugs(allRes.data);
+                if (assignedRes?.data) {
+                    setAssignedIds(new Set(assignedRes.data.map((b) => b.id)));
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, [isDeveloper, user?.id]);
 
     const filtered = bugs.filter((b) => {
         const matchSearch = b.title.toLowerCase().includes(search.toLowerCase());
@@ -45,6 +62,12 @@ const BugsList = () => {
         const matchPriority = priorityFilter ? b.priority === priorityFilter : true;
         return matchSearch && matchStatus && matchPriority;
     });
+
+    const isAssignedToMe = (b) =>
+        assignedIds.has(b.id) || (Boolean(user?.username) && b.assignedTo === user.username);
+
+    const assignedBugs = isDeveloper ? filtered.filter(isAssignedToMe) : [];
+    const otherBugs = isDeveloper ? filtered.filter((b) => !isAssignedToMe(b)) : filtered;
 
     if (loading) {
         return (
@@ -101,52 +124,90 @@ const BugsList = () => {
                 />
             </div>
 
-            {/* Table */}
+            {/* Table(s) */}
             {filtered.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 py-12 text-center">
                     <p className="text-3xl">🔍</p>
                     <p className="mt-2 text-sm text-gray-400">No bugs match your filters.</p>
                 </div>
-            ) : (
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                    <table className="w-full text-left text-sm">
-                        <thead className="border-b border-gray-100 bg-gray-50/60">
-                            <tr>
-                                <th className="px-4 py-3 font-semibold text-gray-500">Title</th>
-                                <th className="px-4 py-3 font-semibold text-gray-500">Project</th>
-                                <th className="px-4 py-3 font-semibold text-gray-500">Status</th>
-                                <th className="px-4 py-3 font-semibold text-gray-500">Priority</th>
-                                <th className="px-4 py-3 font-semibold text-gray-500">Reporter</th>
-                                <th className="px-4 py-3 font-semibold text-gray-500">Assignee</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {filtered.map((b) => (
-                                <tr
-                                    key={b.id}
-                                    onClick={() => navigate(`/bugs/${b.id}`)}
-                                    className="cursor-pointer transition-colors hover:bg-blue-50/40"
-                                >
-                                    <td className="px-4 py-3 font-medium text-gray-800">{b.title}</td>
-                                    <td className="px-4 py-3 text-gray-500 text-xs">{b.projectName || "—"}</td>
-                                    <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
-                                    <td className="px-4 py-3"><PriorityBadge priority={b.priority} /></td>
-                                    <td className="px-4 py-3 text-gray-500">{b.createdBy}</td>
-                                    <td className="px-4 py-3">
-                                        {b.assignedTo ? (
-                                            <span className="text-gray-700">{b.assignedTo}</span>
-                                        ) : (
-                                            <span className="text-xs text-gray-300">Unassigned</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            ) : isDeveloper ? (
+                <div className="space-y-8">
+                    <div className="space-y-3">
+                        <h2 className="text-lg font-bold text-gray-800">
+                            Assigned to Me
+                            <span className="ml-2 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-600">
+                                {assignedBugs.length}
+                            </span>
+                        </h2>
+                        {assignedBugs.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 py-8 text-center">
+                                <p className="text-sm text-gray-400">No assigned bugs match your filters.</p>
+                            </div>
+                        ) : (
+                            <BugTable rows={assignedBugs} navigate={navigate} />
+                        )}
+                    </div>
+
+                    <div className="space-y-3">
+                        <h2 className="text-lg font-bold text-gray-800">
+                            Other Bugs
+                            <span className="ml-2 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+                                {otherBugs.length}
+                            </span>
+                        </h2>
+                        {otherBugs.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 py-8 text-center">
+                                <p className="text-sm text-gray-400">No other bugs match your filters.</p>
+                            </div>
+                        ) : (
+                            <BugTable rows={otherBugs} navigate={navigate} />
+                        )}
+                    </div>
                 </div>
+            ) : (
+                <BugTable rows={filtered} navigate={navigate} />
             )}
         </div>
     );
 };
+
+const BugTable = ({ rows, navigate }) => (
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <table className="w-full text-left text-sm">
+            <thead className="border-b border-gray-100 bg-gray-50/60">
+                <tr>
+                    <th className="px-4 py-3 font-semibold text-gray-500">Title</th>
+                    <th className="px-4 py-3 font-semibold text-gray-500">Project</th>
+                    <th className="px-4 py-3 font-semibold text-gray-500">Status</th>
+                    <th className="px-4 py-3 font-semibold text-gray-500">Priority</th>
+                    <th className="px-4 py-3 font-semibold text-gray-500">Reporter</th>
+                    <th className="px-4 py-3 font-semibold text-gray-500">Assignee</th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+                {rows.map((b) => (
+                    <tr
+                        key={b.id}
+                        onClick={() => navigate(`/bugs/${b.id}`)}
+                        className="cursor-pointer transition-colors hover:bg-blue-50/40"
+                    >
+                        <td className="px-4 py-3 font-medium text-gray-800">{b.title}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500">{b.projectName || "—"}</td>
+                        <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
+                        <td className="px-4 py-3"><PriorityBadge priority={b.priority} /></td>
+                        <td className="px-4 py-3 text-gray-500">{b.createdBy}</td>
+                        <td className="px-4 py-3">
+                            {b.assignedTo ? (
+                                <span className="text-gray-700">{b.assignedTo}</span>
+                            ) : (
+                                <span className="text-xs text-gray-300">Unassigned</span>
+                            )}
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    </div>
+);
 
 export default BugsList;

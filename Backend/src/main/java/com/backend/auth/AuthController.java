@@ -4,13 +4,12 @@ import com.backend.dto.CreateUserRequestDto;
 import com.backend.dto.UserResponseDto;
 import com.backend.entity.User;
 import com.backend.repository.UserRepository;
-import com.backend.security.CustomUserDetails;
 import com.backend.security.JwtUtil;
+import com.backend.service.ForgotPasswordService;
 import com.backend.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,15 +25,18 @@ public class AuthController {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final UserService userService;
+    private final ForgotPasswordService forgotPasswordService;
 
     public AuthController(AuthenticationManager authenticationManager,
                           JwtUtil jwtUtil,
                           UserRepository userRepository,
-                          UserService userService) {
+                          UserService userService,
+                          ForgotPasswordService forgotPasswordService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.userService = userService;
+        this.forgotPasswordService = forgotPasswordService;
     }
 
     @PostMapping("/login")
@@ -67,5 +69,29 @@ public class AuthController {
                 createdUser.getRole());
 
         return ResponseEntity.ok(Map.of("token", token));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        forgotPasswordService.sendResetCode(request != null ? request.getEmail() : null);
+        return ResponseEntity.ok(Map.of("message", "Verification code sent to email"));
+    }
+
+    @PostMapping("/compare-code")
+    public ResponseEntity<?> compareCode(@RequestBody CompareCodeRequest request) {
+        forgotPasswordService.compareCode(
+                request != null ? request.getEmail() : null,
+                request != null ? request.getInputCode() : null
+        );
+        return ResponseEntity.ok(Map.of("message", "Code verified successfully"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        forgotPasswordService.resetPassword(
+                request != null ? request.getEmail() : null,
+                request != null ? request.getNewPassword() : null
+        );
+        return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
     }
 }

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { loginUser, registerUser } from "../services/authService";
 import { useAuth } from "../auth/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const Auth = () => {
     const { login } = useAuth();
@@ -169,6 +169,17 @@ const Auth = () => {
                                     className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
                                 />
                             </label>
+
+                            {isLogin && (
+                                <div className="flex justify-end">
+                                    <Link
+                                        to="/forgot-password"
+                                        className="text-xs font-medium text-blue-600 transition hover:text-blue-700"
+                                    >
+                                        Forgot password?
+                                    </Link>
+                                </div>
+                            )}
 
                             {error && <p className="text-sm text-red-500">{error}</p>}
 

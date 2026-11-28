@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getBugById, deleteBug, changeStatus } from "../services/bugService";
+import { getBugById, getAssignedBugs, deleteBug, changeStatus } from "../services/bugService";
 import { getCommentsByBug, createComment } from "../services/commentService";
 import { useAuth } from "../auth/AuthContext";
+import { getStoredUserId } from "../services/authService";
 import { useToast } from "../components/shared/ToastContext";
 import StatusBadge from "../components/shared/StatusBadge";
 import PriorityBadge from "../components/shared/PriorityBadge";
@@ -20,30 +21,36 @@ const statusOptions = [
 const BugDetail = () => {
     const { id } = useParams();
     const { user } = useAuth();
-    const userId = localStorage.getItem("userId");
+    const userId = user?.id ?? getStoredUserId();
     const navigate = useNavigate();
     const toast = useToast();
     const [bug, setBug] = useState(null);
+    const [assignedToMe, setAssignedToMe] = useState(false);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState("");
     const [loading, setLoading] = useState(true);
-    const [devStatus, setDevStatus] = useState("");
+    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     const load = async () => {
         try {
-            const [bugRes, commRes] = await Promise.all([
+            const devId = user?.role === "DEVELOPER" ? userId : null;
+            const [bugRes, commRes, assignedRes] = await Promise.all([
                 getBugById(id),
                 getCommentsByBug(id),
+                devId ? getAssignedBugs(devId).catch(() => null) : Promise.resolve(null),
             ]);
             setBug(bugRes.data);
             setComments(commRes.data);
+            if (assignedRes?.data) {
+                setAssignedToMe(assignedRes.data.some((b) => String(b.id) === String(id)));
+            }
         } catch (err) {
             console.error(err);
         }
         setLoading(false);
     };
 
-    useEffect(() => { load(); }, [id]);
+    useEffect(() => { load(); }, [id, user?.role, userId]);
 
     const handleComment = async (e) => {
         e.preventDefault();
@@ -72,15 +79,17 @@ const BugDetail = () => {
         }
     };
 
-    const handleDevStatusChange = async () => {
-        if (!devStatus) return;
+    const handleDevStatusChange = async (newStatus) => {
+        if (!newStatus || newStatus === bug?.status) return;
+        setUpdatingStatus(true);
         try {
-            await changeStatus(id, devStatus);
-            setDevStatus("");
+            await changeStatus(id, newStatus);
+            setBug((prev) => (prev ? { ...prev, status: newStatus } : prev));
             toast.success("Status updated.");
-            load();
-        } catch (err) {
+        } catch {
             toast.error("Failed to update status.");
+        } finally {
+            setUpdatingStatus(false);
         }
     };
 
@@ -107,9 +116,13 @@ const BugDetail = () => {
     const canComment = ["TESTER", "DEVELOPER"].includes(user?.role);
     const canManage = ["PROJECT_MANAGER", "ADMIN"].includes(user?.role);
     const canDelete = user?.role === "ADMIN";
-    const isDeveloperAssigned = user?.role === "DEVELOPER" && bug.assignedTo === user.username;
-
-    const devStatusOptions = statusOptions.filter((s) => s.value !== bug.status);
+    const isDeveloperAssigned =
+        user?.role === "DEVELOPER" &&
+        (assignedToMe ||
+            (Boolean(bug.assignedTo) &&
+                Boolean(user?.username) &&
+                bug.assignedTo.toLowerCase() === user.username.toLowerCase()) ||
+            (bug.assignedToId != null && String(bug.assignedToId) === String(userId)));
 
     return (
         <div className="space-y-6">
@@ -128,7 +141,17 @@ const BugDetail = () => {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <StatusBadge status={bug.status} />
+                    {isDeveloperAssigned ? (
+                        <Dropdown
+                            options={statusOptions}
+                            value={bug.status}
+                            disabled={updatingStatus}
+                            onChange={handleDevStatusChange}
+                            className="w-40"
+                        />
+                    ) : (
+                        <StatusBadge status={bug.status} />
+                    )}
                     <PriorityBadge priority={bug.priority} />
                 </div>
             </div>
@@ -165,30 +188,6 @@ const BugDetail = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Developer — Change Status */}
-            {isDeveloperAssigned && (
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-base font-bold text-gray-800">Update Status</h2>
-                    <p className="mt-1 text-xs text-gray-400">You can change the status since this bug is assigned to you.</p>
-                    <div className="mt-4 flex items-center gap-3">
-                        <Dropdown
-                            options={devStatusOptions}
-                            value={devStatus}
-                            onChange={setDevStatus}
-                            placeholder="Select status..."
-                            className="w-56"
-                        />
-                        <button
-                            onClick={handleDevStatusChange}
-                            disabled={!devStatus}
-                            className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
-                        >
-                            Update
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {/* Bug Manager (PM / ADMIN) */}
             {canManage && (

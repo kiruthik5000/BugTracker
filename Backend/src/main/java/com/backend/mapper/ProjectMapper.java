@@ -26,7 +26,8 @@ public class ProjectMapper {
                 project.getName(),
                 project.getDescription(),
                 project.getCreatedAt(),
-                project.getManagedBy() != null ? project.getManagedBy().getUsername() : null
+                project.getManagedBy() != null ? project.getManagedBy().getUsername() : null,
+                project.getManagedBy() != null ? project.getManagedBy().getId() : null
         );
     }
 

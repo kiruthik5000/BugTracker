@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const aiAxios = axios.create({
-    baseURL: "http://localhost:8000",
+    baseURL: import.meta.env.VITE_AI_URL,
 });
 
 export const checkDuplicate = (bug) =>

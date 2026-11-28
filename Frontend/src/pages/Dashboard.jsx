@@ -6,10 +6,18 @@ import PriorityBadge from "../components/shared/PriorityBadge";
 import { useNavigate } from "react-router-dom";
 
 const statConfig = [
-    { key: "total", label: "Total Bugs", color: "from-gray-500 to-gray-700", textColor: "text-gray-700", bg: "bg-gray-50" },
-    { key: "open", label: "Open", color: "from-sky-400 to-sky-600", textColor: "text-sky-700", bg: "bg-sky-50" },
-    { key: "inProgress", label: "In Progress", color: "from-amber-400 to-amber-600", textColor: "text-amber-700", bg: "bg-amber-50" },
-    { key: "resolved", label: "Resolved", color: "from-emerald-400 to-emerald-600", textColor: "text-emerald-700", bg: "bg-emerald-50" },
+    { key: "total", status: "ALL", label: "Total Bugs", color: "from-gray-500 to-gray-700", textColor: "text-gray-700" },
+    { key: "open", status: "OPEN", label: "Open", color: "from-sky-400 to-sky-600", textColor: "text-sky-700" },
+    { key: "inProgress", status: "IN_PROGRESS", label: "In Progress", color: "from-amber-400 to-amber-600", textColor: "text-amber-700" },
+    { key: "resolved", status: "RESOLVED", label: "Resolved", color: "from-emerald-400 to-emerald-600", textColor: "text-emerald-700" },
+];
+
+const priorityFilters = [
+    { value: "ALL", label: "All Priorities", style: "border-gray-200 bg-white text-gray-600" },
+    { value: "CRITICAL", label: "Critical", style: "border-red-200 bg-red-50 text-red-700" },
+    { value: "HIGH", label: "High", style: "border-orange-200 bg-orange-50 text-orange-700" },
+    { value: "MEDIUM", label: "Medium", style: "border-blue-200 bg-blue-50 text-blue-700" },
+    { value: "LOW", label: "Low", style: "border-slate-200 bg-slate-50 text-slate-600" },
 ];
 
 const Dashboard = () => {
@@ -18,6 +26,8 @@ const Dashboard = () => {
     const [bugs, setBugs] = useState([]);
     const [myBugs, setMyBugs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [priorityFilter, setPriorityFilter] = useState("ALL");
 
     useEffect(() => {
         const load = async () => {
@@ -58,25 +68,113 @@ const Dashboard = () => {
         closed: bugs.filter((b) => b.status === "CLOSED").length,
     };
 
+    const hasActiveFilter = statusFilter !== "ALL" || priorityFilter !== "ALL";
+
+    const applyFilters = (list) =>
+        list.filter(
+            (b) =>
+                (statusFilter === "ALL" || b.status === statusFilter) &&
+                (priorityFilter === "ALL" || b.priority === priorityFilter)
+        );
+
+    const filteredMyBugs = applyFilters(myBugs);
+    const filteredRecentBugs = hasActiveFilter ? applyFilters(bugs) : bugs.slice(0, 8);
+
+    const toggleStatusFilter = (status) => {
+        setStatusFilter((prev) => (prev === status ? "ALL" : status));
+    };
+
     return (
         <div className="space-y-8">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+                    <p className="mt-0.5 text-sm text-gray-400">Click any stat card or priority pill to filter bugs</p>
+                </div>
+                {user?.role === "TESTER" && (
+                    <button
+                        type="button"
+                        onClick={() => navigate("/bugs/new")}
+                        className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                    >
+                        + Report Bug
+                    </button>
+                )}
+            </div>
+
             {/* Stat cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {statConfig.map((s) => (
-                    <div key={s.key} className={`relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:shadow-md`}>
-                        <div className={`absolute left-0 top-0 h-full w-1 bg-gradient-to-b ${s.color}`} />
-                        <p className="pl-3 text-sm font-medium text-gray-500">{s.label}</p>
-                        <p className={`mt-1 pl-3 text-3xl font-extrabold ${s.textColor}`}>{counts[s.key]}</p>
-                    </div>
-                ))}
+                {statConfig.map((s) => {
+                    const isActive = statusFilter === s.status && (s.status !== "ALL" || hasActiveFilter === false);
+                    return (
+                        <button
+                            key={s.key}
+                            type="button"
+                            onClick={() => (s.status === "ALL" ? setStatusFilter("ALL") : toggleStatusFilter(s.status))}
+                            className={`relative overflow-hidden rounded-2xl border bg-white p-5 text-left shadow-sm transition hover:shadow-md ${
+                                isActive && s.status !== "ALL"
+                                    ? "border-blue-500 ring-2 ring-blue-100"
+                                    : "border-gray-100"
+                            }`}
+                        >
+                            <div className={`absolute left-0 top-0 h-full w-1 bg-gradient-to-b ${s.color}`} />
+                            <p className="pl-3 text-sm font-medium text-gray-500">{s.label}</p>
+                            <p className={`mt-1 pl-3 text-3xl font-extrabold ${s.textColor}`}>{counts[s.key]}</p>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Priority filter pills */}
+            <div className="flex flex-wrap items-center gap-2">
+                {priorityFilters.map((p) => {
+                    const count = p.value === "ALL" ? bugs.length : bugs.filter((b) => b.priority === p.value).length;
+                    const active = priorityFilter === p.value;
+                    return (
+                        <button
+                            key={p.value}
+                            type="button"
+                            onClick={() => setPriorityFilter((prev) => (prev === p.value && p.value !== "ALL" ? "ALL" : p.value))}
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition ${p.style} ${
+                                active ? "ring-2 ring-blue-500 ring-offset-1" : "opacity-75 hover:opacity-100"
+                            }`}
+                        >
+                            <span>{p.label}</span>
+                            <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[11px]">{count}</span>
+                        </button>
+                    );
+                })}
+                {hasActiveFilter && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setStatusFilter("ALL");
+                            setPriorityFilter("ALL");
+                        }}
+                        className="ml-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+                    >
+                        Clear filters
+                    </button>
+                )}
             </div>
 
             {/* Role-specific section */}
             {user?.role === "TESTER" && (
-                <Section title="My Reported Bugs" bugs={myBugs} navigate={navigate} emptyMsg="You haven't reported any bugs yet." />
+                <Section
+                    title="My Reported Bugs"
+                    bugs={filteredMyBugs}
+                    navigate={navigate}
+                    emptyMsg={hasActiveFilter ? "No reported bugs match the selected filters." : "You haven't reported any bugs yet."}
+                />
             )}
             {user?.role === "DEVELOPER" && (
-                <Section title="Assigned to Me" bugs={myBugs} navigate={navigate} emptyMsg="No bugs assigned to you." />
+                <Section
+                    title="Assigned to Me"
+                    bugs={filteredMyBugs}
+                    navigate={navigate}
+                    emptyMsg={hasActiveFilter ? "No assigned bugs match the selected filters." : "No bugs assigned to you."}
+                />
             )}
             {(user?.role === "PROJECT_MANAGER" || user?.role === "ADMIN") && (
                 <div className="space-y-5">
@@ -87,7 +185,12 @@ const Dashboard = () => {
                         <MiniStat label="Resolved" count={counts.resolved} color="border-emerald-200 bg-emerald-50 text-emerald-700" />
                         <MiniStat label="Closed" count={counts.closed} color="border-gray-200 bg-gray-50 text-gray-600" />
                     </div>
-                    <Section title="Recent Bugs" bugs={bugs.slice(0, 8)} navigate={navigate} emptyMsg="No bugs found." />
+                    <Section
+                        title={hasActiveFilter ? "Filtered Bugs" : "Recent Bugs"}
+                        bugs={filteredRecentBugs}
+                        navigate={navigate}
+                        emptyMsg={hasActiveFilter ? "No bugs match the selected filters." : "No bugs found."}
+                    />
                 </div>
             )}
         </div>

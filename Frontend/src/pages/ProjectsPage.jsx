@@ -177,21 +177,19 @@ const ProjectsPage = () => {
                     {p.description || "—"}
                   </td>
 
-                  <td className="relative px-4 py-3">
+                  <td className="px-4 py-3">
                     {isAdmin ? (
-                      <div className="relative z-50">
-                        <Dropdown
-                          options={managerOptions}
-                          value=""
-                          onChange={(val) =>
-                            handleAssign(p.id, val)
-                          }
-                          placeholder={
-                            p.assignedTo || "Assign..."
-                          }
-                          className="w-40"
-                        />
-                      </div>
+                      <Dropdown
+                        options={managerOptions}
+                        value=""
+                        onChange={(val) =>
+                          handleAssign(p.id, val)
+                        }
+                        placeholder={
+                          p.assignedTo || "Assign..."
+                        }
+                        className="w-40"
+                      />
                     ) : (
                       <span className="text-gray-600">
                         {p.assignedTo || (

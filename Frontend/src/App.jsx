@@ -1,6 +1,8 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Auth from "./Compontents/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import RoleGuard from "./components/shared/RoleGuard";
 import Layout from "./components/layout/Layout";
@@ -28,6 +30,8 @@ const App = () => {
     return (
         <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             <Route
                 element={

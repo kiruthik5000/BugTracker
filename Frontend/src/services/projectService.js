@@ -1,10 +1,13 @@
 import axiosInstance from "../api/axiosInstance";
+import { getStoredUserId } from "./authService";
 
 export const getAllProjects = () => axiosInstance.get("/projects");
 
 export const createProject = (data) => {
-    data.userId = localStorage.getItem("userId");
-    return axiosInstance.post("/projects", data);
+    return axiosInstance.post("/projects", {
+        ...data,
+        userId: getStoredUserId(),
+    });
 }
 
 export const assignManager = (projectId, managerId) =>
